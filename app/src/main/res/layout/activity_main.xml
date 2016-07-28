@@ -42,6 +42,13 @@
                 android:layout_weight="1"
                 android:text="扫　描"
                 android:background="#ff00ff00" />
+            <Button
+                android:id="@+id/btn_create_group"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="建　组"
+                android:background="#ffff0000" />
         </LinearLayout>
 
     </android.support.design.widget.AppBarLayout>

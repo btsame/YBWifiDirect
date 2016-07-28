@@ -3,6 +3,7 @@ package com.cy.yangbo.ybwifidirect;
 import android.content.Context;
 import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
+import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -25,8 +26,11 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity implements WDBroadcastReceiver.WifiDirectListener,
         View.OnClickListener{
 
-    public static final int START_SACN = 1;
+    public static final int START_SCAN = 1;
     public static final int STOP_SCAN = 2;
+    public static final int CREATE_GROUP = 3;
+    public static final int REMOVE_GROUP = 4;
+    public static final int CHECK_GROUP_INFO = 5;
     public static final int SCAN_TIME = 10000;
 
     Context mContext;
@@ -34,7 +38,7 @@ public class MainActivity extends AppCompatActivity implements WDBroadcastReceiv
     Toolbar toolbar;
     RecyclerView rvDevice;
     View toolbarBg;
-    Button btnDiscover;
+    Button btnDiscover, btnCreateGroup;
 
     DeviceAdapter deviceAdapter;
     List<WifiP2pDevice> deviceList;
@@ -45,6 +49,10 @@ public class MainActivity extends AppCompatActivity implements WDBroadcastReceiv
     WDBroadcastReceiver wdBroadcastReceiver;
 
     Handler handler;
+
+    //是否已经创建组
+    boolean groupCreated;
+    String groupName, groupPass;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,7 +77,7 @@ public class MainActivity extends AppCompatActivity implements WDBroadcastReceiv
             public void handleMessage(Message msg) {
                 super.handleMessage(msg);
                 switch (msg.what){
-                    case START_SACN:
+                    case START_SCAN:
                         deviceList.clear();
                         wifiP2pManager.discoverPeers(wifiP2pChannel, new WifiP2pManager.ActionListener() {
                             @Override
@@ -97,6 +105,25 @@ public class MainActivity extends AppCompatActivity implements WDBroadcastReceiv
                             }
                         });
                         break;
+                    case CREATE_GROUP:
+                        if(msg.obj == null) sendEmptyMessageDelayed(CHECK_GROUP_INFO, 1000);
+                        WifiP2pGroup wifiP2pGroup = (WifiP2pGroup) msg.obj;
+                        groupCreated = true;
+                        groupName = wifiP2pGroup.getNetworkName();
+                        groupPass = wifiP2pGroup.getPassphrase();
+                        changeBtnCreateGroupState(groupCreated);
+                        deviceAdapter.notifyDataSetChanged();
+                        break;
+                    case REMOVE_GROUP:
+                        groupCreated = false;
+                        groupName = null;
+                        groupPass = null;
+                        changeBtnCreateGroupState(groupCreated);
+                        deviceAdapter.notifyDataSetChanged();
+                        break;
+                    case CHECK_GROUP_INFO:
+                        isOwnerGroupCreated();
+                        break;
                 }
             }
         };
@@ -106,6 +133,7 @@ public class MainActivity extends AppCompatActivity implements WDBroadcastReceiv
     protected void onResume() {
         super.onResume();
         registerReceiver(wdBroadcastReceiver, wdBroadcastReceiver.getIntentFilter());
+        isOwnerGroupCreated();
     }
 
     @Override
@@ -128,16 +156,41 @@ public class MainActivity extends AppCompatActivity implements WDBroadcastReceiv
         toolbarBg = findViewById(R.id.view_title_bg);
 
         btnDiscover = (Button) findViewById(R.id.btn_discover);
+        btnCreateGroup = (Button) findViewById(R.id.btn_create_group);
 
 
     }
 
     private void setListener(){
         btnDiscover.setOnClickListener(this);
+        btnCreateGroup.setOnClickListener(this);
+    }
+
+    private void changeBtnCreateGroupState(boolean hasCreated){
+        if(hasCreated){
+            btnCreateGroup.setText("消　组");
+        }else{
+            btnCreateGroup.setText("建　组");
+        }
     }
 
     private void toastMessage(String msg){
         Toast.makeText(this, msg, Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * 判断作为owner创建了group
+     * @return
+     */
+    private void isOwnerGroupCreated(){
+        wifiP2pManager.requestGroupInfo(wifiP2pChannel, new WifiP2pManager.GroupInfoListener() {
+            @Override
+            public void onGroupInfoAvailable(WifiP2pGroup wifiP2pGroup) {
+                if(wifiP2pGroup != null && wifiP2pGroup.isGroupOwner()){
+                    handler.sendMessage(handler.obtainMessage(CREATE_GROUP, wifiP2pGroup));
+                }
+            }
+        });
     }
 
     @Override
@@ -184,7 +237,35 @@ public class MainActivity extends AppCompatActivity implements WDBroadcastReceiv
     @Override
     public void onClick(View view) {
         if(view == btnDiscover){
-            handler.sendEmptyMessage(START_SACN);
+            handler.sendEmptyMessage(START_SCAN);
+        }else if(view == btnCreateGroup){
+            if(groupCreated){
+                wifiP2pManager.removeGroup(wifiP2pChannel, new WifiP2pManager.ActionListener() {
+                    @Override
+                    public void onSuccess() {
+                        toastMessage("消组成功");
+                        handler.sendMessage(handler.obtainMessage(REMOVE_GROUP));
+                    }
+
+                    @Override
+                    public void onFailure(int i) {
+
+                    }
+                });
+            }else{
+                wifiP2pManager.createGroup(wifiP2pChannel, new WifiP2pManager.ActionListener() {
+                    @Override
+                    public void onSuccess() {
+                        toastMessage("建组成功");
+                        handler.sendEmptyMessageDelayed(CHECK_GROUP_INFO, 1000);
+                    }
+
+                    @Override
+                    public void onFailure(int i) {
+                        toastMessage("建组失败：" + i);
+                    }
+                });
+            }
         }
     }
 
@@ -200,7 +281,10 @@ public class MainActivity extends AppCompatActivity implements WDBroadcastReceiv
         @Override
         public void onBindViewHolder(DeviceViewHolder holder, int position) {
             if(position == 0){
-                if(deviceList.size() == 0){
+                if(groupCreated){
+                    holder.tvDevice.setText("groupName:" + groupName + "(" + groupPass + ")");
+                    return;
+                } else if(deviceList.size() == 0){
                     holder.tvDevice.setText("请扫描设备");
                     return;
                 }
@@ -218,11 +302,7 @@ public class MainActivity extends AppCompatActivity implements WDBroadcastReceiv
 
         @Override
         public int getItemCount() {
-            if(deviceList.size() == 0){
-                return 1;
-            }else{
-                return deviceList.size();
-            }
+            return deviceList.size() + 1;
         }
 
         public class DeviceViewHolder extends RecyclerView.ViewHolder{
