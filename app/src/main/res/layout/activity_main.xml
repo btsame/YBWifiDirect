@@ -40,7 +40,8 @@
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:text="扫　描"/>
+                android:text="扫　描"
+                android:background="#ff00ff00" />
         </LinearLayout>
 
     </android.support.design.widget.AppBarLayout>

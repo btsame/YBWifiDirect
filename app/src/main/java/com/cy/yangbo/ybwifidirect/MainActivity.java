@@ -5,7 +5,9 @@ import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pManager;
 import android.os.Bundle;
+import android.os.Handler;
 import android.os.Looper;
+import android.os.Message;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -23,6 +25,10 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity implements WDBroadcastReceiver.WifiDirectListener,
         View.OnClickListener{
 
+    public static final int START_SACN = 1;
+    public static final int STOP_SCAN = 2;
+    public static final int SCAN_TIME = 10000;
+
     Context mContext;
 
     Toolbar toolbar;
@@ -37,6 +43,8 @@ public class MainActivity extends AppCompatActivity implements WDBroadcastReceiv
     WifiP2pManager.Channel wifiP2pChannel;
 
     WDBroadcastReceiver wdBroadcastReceiver;
+
+    Handler handler;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -56,7 +64,42 @@ public class MainActivity extends AppCompatActivity implements WDBroadcastReceiv
             }
         });
 
+        handler = new Handler(){
+            @Override
+            public void handleMessage(Message msg) {
+                super.handleMessage(msg);
+                switch (msg.what){
+                    case START_SACN:
+                        deviceList.clear();
+                        wifiP2pManager.discoverPeers(wifiP2pChannel, new WifiP2pManager.ActionListener() {
+                            @Override
+                            public void onSuccess() {
 
+                            }
+
+                            @Override
+                            public void onFailure(int i) {
+
+                            }
+                        });
+                        handler.sendEmptyMessageDelayed(STOP_SCAN, SCAN_TIME);
+                        break;
+                    case STOP_SCAN:
+                        wifiP2pManager.stopPeerDiscovery(wifiP2pChannel, new WifiP2pManager.ActionListener() {
+                            @Override
+                            public void onSuccess() {
+
+                            }
+
+                            @Override
+                            public void onFailure(int i) {
+
+                            }
+                        });
+                        break;
+                }
+            }
+        };
     }
 
     @Override
@@ -141,17 +184,7 @@ public class MainActivity extends AppCompatActivity implements WDBroadcastReceiv
     @Override
     public void onClick(View view) {
         if(view == btnDiscover){
-            wifiP2pManager.discoverPeers(wifiP2pChannel, new WifiP2pManager.ActionListener() {
-                @Override
-                public void onSuccess() {
-
-                }
-
-                @Override
-                public void onFailure(int i) {
-
-                }
-            });
+            handler.sendEmptyMessage(START_SACN);
         }
     }
 
@@ -198,7 +231,7 @@ public class MainActivity extends AppCompatActivity implements WDBroadcastReceiv
 
             public DeviceViewHolder(View itemView) {
                 super(itemView);
-                tvDevice = (TextView) itemView;
+                tvDevice = (TextView) itemView.findViewById(R.id.tv_device);
             }
         }
     }
