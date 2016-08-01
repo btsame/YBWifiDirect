@@ -49,6 +49,20 @@
                 android:layout_weight="1"
                 android:text="建　组"
                 android:background="#ffff0000" />
+            <Button
+                android:id="@+id/btn_add_service"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="发布服务"
+                android:background="#ff00ffff" />
+            <Button
+                android:id="@+id/btn_discover_service"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:text="发现服务"
+                android:background="#ffffff00" />
         </LinearLayout>
 
     </android.support.design.widget.AppBarLayout>

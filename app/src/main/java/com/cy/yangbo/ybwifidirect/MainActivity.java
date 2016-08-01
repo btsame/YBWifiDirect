@@ -5,6 +5,9 @@ import android.net.wifi.p2p.WifiP2pDevice;
 import android.net.wifi.p2p.WifiP2pDeviceList;
 import android.net.wifi.p2p.WifiP2pGroup;
 import android.net.wifi.p2p.WifiP2pManager;
+import android.net.wifi.p2p.nsd.WifiP2pDnsSdServiceInfo;
+import android.net.wifi.p2p.nsd.WifiP2pServiceInfo;
+import android.net.wifi.p2p.nsd.WifiP2pUpnpServiceInfo;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -38,7 +41,7 @@ public class MainActivity extends AppCompatActivity implements WDBroadcastReceiv
     Toolbar toolbar;
     RecyclerView rvDevice;
     View toolbarBg;
-    Button btnDiscover, btnCreateGroup;
+    Button btnDiscover, btnCreateGroup, btnAddService, btnDiscoverService;
 
     DeviceAdapter deviceAdapter;
     List<WifiP2pDevice> deviceList;
@@ -157,6 +160,8 @@ public class MainActivity extends AppCompatActivity implements WDBroadcastReceiv
 
         btnDiscover = (Button) findViewById(R.id.btn_discover);
         btnCreateGroup = (Button) findViewById(R.id.btn_create_group);
+        btnAddService = (Button) findViewById(R.id.btn_add_service);
+        btnDiscoverService = (Button) findViewById(R.id.btn_discover_service);
 
 
     }
@@ -164,6 +169,8 @@ public class MainActivity extends AppCompatActivity implements WDBroadcastReceiv
     private void setListener(){
         btnDiscover.setOnClickListener(this);
         btnCreateGroup.setOnClickListener(this);
+        btnAddService.setOnClickListener(this);
+        btnDiscoverService.setOnClickListener(this);
     }
 
     private void changeBtnCreateGroupState(boolean hasCreated){
@@ -266,6 +273,36 @@ public class MainActivity extends AppCompatActivity implements WDBroadcastReceiv
                     }
                 });
             }
+        }else if(view == btnAddService){
+            wifiP2pManager.addLocalService(wifiP2pChannel,
+                    WifiP2pDnsSdServiceInfo.newInstance("transfer", "_transfer_tcp", null), new WifiP2pManager.ActionListener() {
+                @Override
+                public void onSuccess() {
+
+                }
+
+                @Override
+                public void onFailure(int i) {
+
+                }
+            });
+
+
+            wifiP2pManager.addLocalService(wifiP2pChannel,
+                    WifiP2pUpnpServiceInfo.newInstance(), new WifiP2pManager.ActionListener() {
+                        @Override
+                        public void onSuccess() {
+
+                        }
+
+                        @Override
+                        public void onFailure(int i) {
+
+                        }
+                    });
+
+        }else if(view == btnDiscoverService){
+
         }
     }
 
